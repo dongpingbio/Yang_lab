@@ -2,6 +2,12 @@ clear all;
 close all;
 clc;
 warning off;
+
+% delete the Data_summary.xlsx file if exist in the current folder
+if exist('Data_summary.xlsx', 'file')==2
+  delete('Data_summary.xlsx');
+end
+
 %%
 % load the tag file
 
@@ -18,7 +24,7 @@ data_sum(ii).tag=tag_output;
 end
 
 % load all the mat file from different sub folder
-rootfolder='C:\Users\Ping Dong\Desktop\Hao Wang\';
+rootfolder=pwd; 
 filelist = dir(fullfile(rootfolder, '**', '*.mat'));
 len=length(filelist);
 
@@ -44,28 +50,53 @@ mice_num=n;
 Ca_output_total_mice=[];
 
 for ii=1:mice_num
+    figure
     Raw_Ca_DataBase=data_sum(ii).raw_Ca;
     Trigger_timeStamp=data_sum(ii).tag;
     Ca_output_per_mice=Trigger_event_extract(Raw_Ca_DataBase,Trigger_timeStamp, ts, tf, sample_freq);
+    imagesc(Ca_output_per_mice)
+
+    title_txt=['Ca raw image',' Mice No. ', num2str(ii)];
+    title(title_txt)
+    
+    colormap("hot")
+    colorbar
+
     Ca_output_total_mice=[Ca_output_total_mice; Ca_output_per_mice];
-%     figure(ii)
-%     plot(Ca_output_per_mice')
+    %     figure(ii)
+    %     plot(Ca_output_per_mice')
 end
 % figure(100)
 % plot(Ca_output_total_mice')
 
+figure
+imagesc(Ca_output_total_mice)
+title('Ca_output_total_mice')
+title('Raw Ca Image before normalization')
+colormap("hot")
+colorbar
+
 % figure
 normalized_data=Ca_data_normalization(Ca_output_total_mice,ts,tf,sample_freq);
 % plot(normalized_data')
+%%
+figure
+alpha = 0.4; % define the transparency of the SEM shade
+acolor='k'; % define the color of the averaged mean curve to black
 
-% figure
+[lineOut, fillOut, amean, asem] = stdshade(normalized_data,alpha,acolor);
 mean_normalized_data=mean(normalized_data);
+norm_mean_std=[amean' asem'];
+%%
 % plot(mean_normalized_data);
 
-% figure
-% imagesc(normalized_data)
-% colormap("hot")
-% colorbar
+figure
+imagesc(normalized_data)
+title('Normalized Data Before Sorting')
+colormap("hot")
+colorbar
+limits=[-0.1 0.8];
+caxis (limits)
 
 
 % sort the data base on their value post trigger time
@@ -122,11 +153,12 @@ ylabel('Cell No.')
 colormap("hot")
 colorbar
 
-limits=[-0.1 1];
+limits=[-0.1 0.8];
 caxis (limits)
 
 xlswrite('Data_summary.xlsx',normalized_data,'ori_norm_data');
 xlswrite('Data_summary.xlsx',normalized_data_rearranged,'rear_norm_data');
+xlswrite('Data_summary.xlsx',norm_mean_std,'norm_mean_std');
 xlswrite('Data_summary.xlsx',ratio_output_txt,'ratio','A1');
 xlswrite('Data_summary.xlsx',ratio_output,'ratio','B1');
 
